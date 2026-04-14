@@ -1,7 +1,7 @@
 # Dungeons & Cards
 
 ## Repository
-<Link to your project's public GitHub respository>
+[<Link to your project's public GitHub respository>](https://github.com/dillionx13/PFDA-Final-Project)
 
 ## Description
 This is going to be a card game where you use cards against creatures, inspired by DnD. This relates to media and digital arts as it will be an interactive game.
