@@ -1,17 +1,6 @@
 import pygame
 import random
 
-class SomeClass():
-
-    def __init__(self):
-        ...
-
-    def method_2():
-        ...
-
-    def method_n():
-        ...
-
 class Cards():
 
     def __init__(self, pos, text, description, color):
@@ -49,6 +38,23 @@ class Cards():
     def draw(self, screen):
         screen.blit(self.card_background, self.rect)
 
+class CardDictionary():
+    
+    def __init__(self):
+        d
+
+class CardDeck():
+
+    def __init__(self):
+        self.deck_list = []
+
+    def method_2():
+        ...
+
+    def method_n():
+        ...
+
+
 class Button():
     def __init__(self, text, rect_size, font_size =125):
         self.text= text
@@ -71,8 +77,20 @@ class Button():
         text_rect = text_render.get_rect(center=self.rect.center)
         screen.blit(text_render, text_rect)
 
+
 def game_screen(screen):
-    hand_rect = pygame.Rect((550, 1200, 600, 150))
+    hand_rect = pygame.Rect((800, 1100, 1000, 340))
+    pygame.draw.rect(screen, (0,155,0), hand_rect)
+
+    energy_rect = pygame.Rect((150, 1065, 375, 375))
+    pygame.draw.ellipse(screen, (18,76,255), energy_rect)
+
+    deck_back = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1)
+    screen.blit(deck_back, (2100,1118))
+
+    health_rect = pygame.Rect((2200, 800, 250, 250))
+    pygame.draw.ellipse(screen, (200,0,0), health_rect)
+
 
 def title(screen):
     title_font = pygame.font.SysFont(None, 200)
@@ -106,7 +124,7 @@ def main():
 
     card = Cards((160,160), "Fireball", "Deal 60 Damage", (255,255,255))
     card.rect.x += 1000
-    card.rect.y += 900
+    card.rect.y += 950
 
     running = True
     playing = False
@@ -120,8 +138,10 @@ def main():
             play_button.draw(screen)
             quit_button.draw(screen)
         else:
+            game_screen(screen)
             return_button.draw(screen)
             card.draw(screen)
+            
             
         
         mouse_pos = pygame.mouse.get_pos()
