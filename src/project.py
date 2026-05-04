@@ -3,11 +3,14 @@ import random
 
 class Cards():
 
-    def __init__(self, pos, text, description, color):
-        self.text = text
-        self.pos = pos
-        self.description = description
-        self.text_color = color
+    def __init__(self, dictionary, color):
+        self.text = dictionary["name"]
+        self.description = dictionary["description"]
+        self.cost = dictionary["cost"]
+        self.text_color = color        
+
+
+    def draw(self, pos, screen):
         self.card_background = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1)
         
         self.font = pygame.font.SysFont(None, 49)
@@ -27,32 +30,59 @@ class Cards():
         circle_rect = pygame.Rect(0, 0, 50 * 2, 50 * 2)
         circle_rect.x += -28
         circle_rect.y += -6
-        number_surf = number_font.render("5", True, (255, 255, 255))
+        number_surf = number_font.render(self.cost, True, self.text_color)
         number_rect = number_surf.get_rect(center=circle_rect.center)
         self.card_background.blit(number_surf,number_rect)
         
 
         self.rect = self.card_background.get_rect(topleft=pos)
 
-
-    def draw(self, screen):
         screen.blit(self.card_background, self.rect)
 
 class CardDictionary():
+    dictionary = {
+        "Fireball": {"name": "Fireball", "cost": "3", "description": "Deal 8d6 Damage"},
+        "Call Lightning": {"name": "Call Lightning", "cost": "3", "description": "Deal 3d10 Damage"},
+        "Eldrich Blast": {"name": "Eldrich Blast", "cost": "1", "description": "Deal 1d8 Damage"}
+    }
+    def get_item(self, name):
+        return self.dictionary[name]
     
-    def __init__(self):
-        d
+    def get_dictionary(self):
+        return self.dictionary
 
 class CardDeck():
+    def __init__(self):     
+        # build the deck
+        self.card_deck = self.build_deck()
+        self.played_card = []
 
-    def __init__(self):
-        self.deck_list = []
+        
+    def build_deck(self):
+        card_dictionary = CardDictionary()
+        card_list = []
+        num_card_max = 3
+        for _ in range(1, num_card_max + 1):
+            for index in range(0, len(card_dictionary.get_dictionary())):
+                dictionary = list(card_dictionary.get_dictionary().values())[index]
+                self.create_card(dictionary, card_list)
 
-    def method_2():
-        ...
+        random.shuffle(card_list)
+        return card_list
 
-    def method_n():
-        ...
+    def create_card(self, dictionary, card_list):
+        card = Cards(dictionary, (255,255,255))
+        card_list.append(card)
+
+    def pick_card_from_deck(self):
+        if (len(self.card_deck) > 0):
+            card = self.card_deck.pop(0)
+            self.played_card.append(card)
+            return card
+        else:
+            return None
+
+    
 
 
 class Button():
@@ -92,6 +122,8 @@ def game_screen(screen):
     pygame.draw.ellipse(screen, (200,0,0), health_rect)
 
 
+
+
 def title(screen):
     title_font = pygame.font.SysFont(None, 200)
     text_render = title_font.render("DUNGEONS & CARDS!", True, (255,255,255))
@@ -105,6 +137,7 @@ def main():
     pygame.display.set_caption("Dungeon & Cards")
     resolution = pygame.display.get_desktop_sizes()[0]
     screen = pygame.display.set_mode(resolution)
+
 
 
     
@@ -122,12 +155,14 @@ def main():
     return_button.set_color((200, 0, 200))
     return_button.set_text_color((255, 255, 255))
 
-    card = Cards((160,160), "Fireball", "Deal 60 Damage", (255,255,255))
-    card.rect.x += 1000
-    card.rect.y += 950
+   # card = Cards((160,160), "Fireball", "Deal 60 Damage", (255,255,255))
+   # card.rect.x += 1000
+   # card.rect.y += 950
 
     running = True
     playing = False
+    deck = CardDeck()
+    
 
     while running:
         screen_color = pygame.Color(68,105,254)
@@ -137,11 +172,12 @@ def main():
             title(screen)
             play_button.draw(screen)
             quit_button.draw(screen)
+            deck = CardDeck()
+            card = deck.pick_card_from_deck()
         else:
             game_screen(screen)
             return_button.draw(screen)
-            card.draw(screen)
-            
+            card.draw((500,200), screen)
             
         
         mouse_pos = pygame.mouse.get_pos()
