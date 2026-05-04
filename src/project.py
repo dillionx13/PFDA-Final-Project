@@ -1,6 +1,26 @@
 import pygame
 import random
 
+class Opponent():
+    def __init__(self):
+        self.max_health = 100
+        self.health = self.max_health
+
+class Player():
+    def __init__(self):
+        self.max_health = 100
+        self.health = self.max_health
+        self.max_energy = 9
+        self.energy = 5
+        self.hand_max = 3
+        self.hand = []
+        self.card_deck = CardDeck()
+
+    def fill_hand(self):
+        if len(self.hand) < 3:
+            for _ in range(0, self.hand_max):
+                self.hand.append(self.card_deck.pick_card_from_deck())
+
 class Card():
 
     def __init__(self, dictionary, color):
@@ -47,7 +67,8 @@ class CardDictionary():
     dictionary = {
         "Fireball": {"name": "Fireball", "cost": "3", "description": "Deal 8d6 Damage"},
         "Call Lightning": {"name": "Call Lightning", "cost": "3", "description": "Deal 3d10 Damage"},
-        "Eldrich Blast": {"name": "Eldrich Blast", "cost": "1", "description": "Deal 1d8 Damage"}
+        "Eldritch Blast": {"name": "Eldritch Blast", "cost": "1", "description": "Deal 1d8 Damage"},
+        "Mind Spike": {"name": "Mind Spike", "cost": "2", "description": "Deal 3d8 Damage"}
     }
     def get_item(self, name):
         return self.dictionary[name]
@@ -57,12 +78,12 @@ class CardDictionary():
 
 class CardDeck():
     def __init__(self): 
-        self.card_in_hand = []    
+        self.card_in_hand = [] 
         self.card_deck = self.build_deck()
         
     def build_deck(self):
+        card_list = [] 
         card_dictionary = CardDictionary()
-        card_list = []
         num_card_max = 3
         for _ in range(1, num_card_max + 1):
             for index in range(0, len(card_dictionary.get_dictionary())):
@@ -99,6 +120,9 @@ class Button():
     
     def collidepoint(self,point):
         return self.rect.collidepoint(point)
+    
+    def set_text(self, text):
+        self.text = text
 
     def draw(self, screen):
         text_render = self.font.render(self.text, True, self.textColor)
@@ -106,25 +130,45 @@ class Button():
         text_rect = text_render.get_rect(center=self.rect.center)
         screen.blit(text_render, text_rect)
 
-def game_screen(player_hand, screen):
+def game_screen(player, opponent, screen):
     hand_rect = pygame.Rect((800, 1100, 1000, 340))
     pygame.draw.rect(screen, (0,155,0), hand_rect)
 
     card_spacing = 350
-    for index, card in enumerate(player_hand):
+    for index, card in enumerate(player.hand):
         card_x = hand_rect.x + (index * card_spacing) + 38
         card_y = hand_rect.y + 10
         card.rect.topleft = (card_x, card_y)
         screen.blit(card.face, card.rect)
-        
+    
+    energy_font = pygame.font.SysFont(None, 125)
+    energy_render = energy_font.render(f"Energy:\n      {player.energy}", True, (255,255,255))
     energy_rect = pygame.Rect((150, 1065, 375, 375))
     pygame.draw.ellipse(screen, (18,76,255), energy_rect)
+    text_rect = energy_render.get_rect(center=energy_rect.center)
+    screen.blit(energy_render, text_rect)
+    
+    #deck_back_font = pygame.font.SysFont(None, 125)
+    #deck_back_render = deck_back_font.render(f"Deck: {(player.card_deck_amount)}", True, (255,255,255))
+    #deck_back_rect = pygame.Rect((2000, 1065, 375, 375))
+   # pygame.draw.rect(screen, (155,155,155), deck_back_rect)
+    #text_rect = deck_back_render.get_rect(center=deck_back_rect.center)
+    #screen.blit(deck_back_render, text_rect)
 
-    deck_back = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1)
-    screen.blit(deck_back, (2100,1118))
-
+    health_font = pygame.font.SysFont(None, 75)
+    health_render = health_font.render(f"Your HP:\n     {player.health}", True, (255,255,255))
     health_rect = pygame.Rect((2200, 800, 250, 250))
+    text_rect = health_render.get_rect(center=health_rect.center)
     pygame.draw.ellipse(screen, (200,0,0), health_rect)
+    screen.blit(health_render, text_rect)
+
+    
+    opponent_font = pygame.font.SysFont(None, 125)
+    opponent_health_render = opponent_font.render(f"Opponent HP: {opponent.health}", True, (255,255,255))
+    opponent_rect = pygame.Rect((880, 50, 800, 100))
+    pygame.draw.rect(screen, (255,0,0), opponent_rect)
+    text_rect = opponent_health_render.get_rect(center=opponent_rect.center)
+    screen.blit(opponent_health_render, text_rect)
 
 def title(screen):
     title_font = pygame.font.SysFont(None, 200)
@@ -152,11 +196,14 @@ def main():
     return_button.set_color((200, 0, 200))
     return_button.set_text_color((255, 255, 255))
 
+    deck_button = Button("Deck", ((2000, 1065, 375, 375)), 125)
+    deck_button.set_color((155,155,155))
+    deck_button.set_text_color((255, 255, 255))
+
 
     running = True
     playing = False
     deck = CardDeck()
-    player_hand = []
     
 
     while running:
@@ -168,8 +215,9 @@ def main():
             play_button.draw(screen)
             quit_button.draw(screen)
         else:
-            game_screen(player_hand, screen)
+            game_screen(player,opponent, screen)
             return_button.draw(screen)
+            deck_button.draw(screen)
 
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -180,18 +228,16 @@ def main():
                 if quit_button.collidepoint(mouse_pos):
                     running = False
                 if play_button.collidepoint(mouse_pos):
-                    player_hand = []
-                    deck = CardDeck()
-                    card_1 = deck.pick_card_from_deck()
-                    player_hand.append(card_1)
-                    card_2 = deck.pick_card_from_deck()
-                    player_hand.append(card_2)
-                    card_3 = deck.pick_card_from_deck()
-                    player_hand.append(card_3)
+                    player = Player()
+                    deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
+                    opponent = Opponent()
                     playing = True
             elif event.type == pygame.MOUSEBUTTONDOWN and playing == True:
                 if return_button.collidepoint(mouse_pos):
                     playing = False
+                if deck_button.collidepoint(mouse_pos):
+                    player.fill_hand()
+                    deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
         pygame.display.update()
 
     pygame.font.quit()
