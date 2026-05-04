@@ -1,6 +1,19 @@
 import pygame
 import random
 
+class GameArea():
+    def __init__(self, text):
+        self.message = text
+
+    
+    def draw(self, screen):
+        rect = pygame.Rect((300,300,2000,500))
+        font = pygame.font.SysFont(None, 100)
+        text_render = font.render(self.message, True, (255,255,255))
+        pygame.draw.rect(screen, (0,25,255), rect, 10)
+        text_rect = text_render.get_rect(center=rect.center)
+        screen.blit(text_render, text_rect)
+
 class Opponent():
     def __init__(self):
         self.max_health = 100
@@ -32,7 +45,11 @@ class Card():
         self.face = self.card_background.copy()
         self.rect = self.face.get_rect()  
         self.build_card()
+        self.selected = False
 
+    def collidepoint(self,point):
+        return self.rect.collidepoint(point)
+    
     def build_card(self):
         self.face = self.card_background.copy()
 
@@ -53,7 +70,7 @@ class Card():
         circle_rect = pygame.Rect(0, 0, 50 * 2, 50 * 2)
         circle_rect.x += -28
         circle_rect.y += -6
-        number_surf = number_font.render(self.cost, True, self.text_color)
+        number_surf = number_font.render(str(self.cost), True, self.text_color)
         number_rect = number_surf.get_rect(center=circle_rect.center)
         self.face.blit(number_surf,number_rect)
         
@@ -65,10 +82,10 @@ class Card():
 
 class CardDictionary():
     dictionary = {
-        "Fireball": {"name": "Fireball", "cost": "3", "description": "Deal 8d6 Damage"},
-        "Call Lightning": {"name": "Call Lightning", "cost": "3", "description": "Deal 3d10 Damage"},
-        "Eldritch Blast": {"name": "Eldritch Blast", "cost": "1", "description": "Deal 1d8 Damage"},
-        "Mind Spike": {"name": "Mind Spike", "cost": "2", "description": "Deal 3d8 Damage"}
+        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage"},
+        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage"},
+        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 1, "description": "Deal 1d8 Damage"},
+        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage"}
     }
     def get_item(self, name):
         return self.dictionary[name]
@@ -124,9 +141,12 @@ class Button():
     def set_text(self, text):
         self.text = text
 
-    def draw(self, screen):
+    def draw(self, shape, screen):
         text_render = self.font.render(self.text, True, self.textColor)
-        pygame.draw.ellipse(screen, self.color, self.rect)
+        if shape == "rect":
+            pygame.draw.rect(screen, self.color, self.rect)
+        else:
+            pygame.draw.ellipse(screen, self.color, self.rect)
         text_rect = text_render.get_rect(center=self.rect.center)
         screen.blit(text_render, text_rect)
 
@@ -147,22 +167,14 @@ def game_screen(player, opponent, screen):
     pygame.draw.ellipse(screen, (18,76,255), energy_rect)
     text_rect = energy_render.get_rect(center=energy_rect.center)
     screen.blit(energy_render, text_rect)
-    
-    #deck_back_font = pygame.font.SysFont(None, 125)
-    #deck_back_render = deck_back_font.render(f"Deck: {(player.card_deck_amount)}", True, (255,255,255))
-    #deck_back_rect = pygame.Rect((2000, 1065, 375, 375))
-   # pygame.draw.rect(screen, (155,155,155), deck_back_rect)
-    #text_rect = deck_back_render.get_rect(center=deck_back_rect.center)
-    #screen.blit(deck_back_render, text_rect)
 
     health_font = pygame.font.SysFont(None, 75)
-    health_render = health_font.render(f"Your HP:\n     {player.health}", True, (255,255,255))
-    health_rect = pygame.Rect((2200, 800, 250, 250))
+    health_render = health_font.render(f"Your HP: {player.health}", True, (255,255,255))
+    health_rect = pygame.Rect((800, 1000, 500, 100))
     text_rect = health_render.get_rect(center=health_rect.center)
-    pygame.draw.ellipse(screen, (200,0,0), health_rect)
+    pygame.draw.rect(screen, (200,0,0), health_rect)
     screen.blit(health_render, text_rect)
 
-    
     opponent_font = pygame.font.SysFont(None, 125)
     opponent_health_render = opponent_font.render(f"Opponent HP: {opponent.health}", True, (255,255,255))
     opponent_rect = pygame.Rect((880, 50, 800, 100))
@@ -200,10 +212,15 @@ def main():
     deck_button.set_color((155,155,155))
     deck_button.set_text_color((255, 255, 255))
 
+    turn_button = Button("Play Turn", ((1300, 1000, 500, 100)), 125)
+    turn_button.set_color((155,155,155))
+    turn_button.set_text_color((255, 255, 255))
+
+    game_area = GameArea("")
+    
 
     running = True
     playing = False
-    deck = CardDeck()
     
 
     while running:
@@ -212,12 +229,14 @@ def main():
 
         if playing == False:
             title(screen)
-            play_button.draw(screen)
-            quit_button.draw(screen)
+            play_button.draw("ellipse", screen)
+            quit_button.draw("ellipse",screen)
         else:
             game_screen(player,opponent, screen)
-            return_button.draw(screen)
-            deck_button.draw(screen)
+            return_button.draw("ellipse",screen)
+            deck_button.draw("rect",screen)
+            turn_button.draw("rect", screen)
+            game_area.draw(screen)
 
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -231,6 +250,7 @@ def main():
                     player = Player()
                     deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
                     opponent = Opponent()
+                    game_area.message = "Click Deck to Start Game!"
                     playing = True
             elif event.type == pygame.MOUSEBUTTONDOWN and playing == True:
                 if return_button.collidepoint(mouse_pos):
@@ -238,6 +258,29 @@ def main():
                 if deck_button.collidepoint(mouse_pos):
                     player.fill_hand()
                     deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
+                    game_area.message = "Select Cards to Play Turn"
+                for card in player.hand:
+                    if card.collidepoint(mouse_pos):
+                        if card.selected:
+                            card.build_card()
+                            card.selected = False
+                            player.energy = player.energy + card.cost
+                            game_area.message = "Select Cards to Play Turn"
+                        else:
+                            total_energy_left = player.energy - card.cost
+                            if total_energy_left < 0:
+                                game_area.message = "Not Enough Energy to Select"
+                            else:
+                                player.energy = player.energy - card.cost
+                                check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
+                                check_mark_rect = check_mark.get_rect(center=card.face.get_rect().center)
+                                check_mark_rect.y -= 20
+                                card.face.blit(check_mark,check_mark_rect)
+                                game_area.message = "Select Cards to Play Turn"
+                                card.selected = True
+                    
+
+
         pygame.display.update()
 
     pygame.font.quit()
