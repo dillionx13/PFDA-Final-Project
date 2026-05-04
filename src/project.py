@@ -1,30 +1,33 @@
 import pygame
 import random
 
-class Cards():
+class Card():
 
     def __init__(self, dictionary, color):
         self.text = dictionary["name"]
         self.description = dictionary["description"]
         self.cost = dictionary["cost"]
-        self.text_color = color        
+        self.text_color = color    
+        self.card_background = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1) 
+        self.face = self.card_background.copy()
+        self.rect = self.face.get_rect()  
+        self.build_card()
 
+    def build_card(self):
+        self.face = self.card_background.copy()
 
-    def draw(self, pos, screen):
-        self.card_background = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1)
-        
         self.font = pygame.font.SysFont(None, 49)
         self.description_font = pygame.font.SysFont(None, 35)
 
         text_surface = self.font.render(self.text, True, self.text_color)
         text_rect = text_surface.get_rect(midtop=self.card_background.get_rect().midtop)
         text_rect.y += 5
-        self.card_background.blit(text_surface, text_rect)
+        self.face.blit(text_surface, text_rect)
 
         desc_surface = self.description_font.render(self.description, True, self.text_color)
         desc_rect = desc_surface.get_rect(midbottom=self.card_background.get_rect().midbottom)
         desc_rect.y += -25        
-        self.card_background.blit(desc_surface,desc_rect)
+        self.face.blit(desc_surface, desc_rect)
 
         number_font = pygame.font.SysFont(None, 45)
         circle_rect = pygame.Rect(0, 0, 50 * 2, 50 * 2)
@@ -32,12 +35,13 @@ class Cards():
         circle_rect.y += -6
         number_surf = number_font.render(self.cost, True, self.text_color)
         number_rect = number_surf.get_rect(center=circle_rect.center)
-        self.card_background.blit(number_surf,number_rect)
+        self.face.blit(number_surf,number_rect)
         
 
-        self.rect = self.card_background.get_rect(topleft=pos)
 
-        screen.blit(self.card_background, self.rect)
+    def draw(self, pos, screen):
+        self.rect.topleft = pos
+        screen.blit(self.face, self.rect)
 
 class CardDictionary():
     dictionary = {
@@ -52,11 +56,9 @@ class CardDictionary():
         return self.dictionary
 
 class CardDeck():
-    def __init__(self):     
-        # build the deck
+    def __init__(self): 
+        self.card_in_hand = []    
         self.card_deck = self.build_deck()
-        self.played_card = []
-
         
     def build_deck(self):
         card_dictionary = CardDictionary()
@@ -71,19 +73,16 @@ class CardDeck():
         return card_list
 
     def create_card(self, dictionary, card_list):
-        card = Cards(dictionary, (255,255,255))
+        card = Card(dictionary, (255,255,255))
         card_list.append(card)
 
     def pick_card_from_deck(self):
         if (len(self.card_deck) > 0):
             card = self.card_deck.pop(0)
-            self.played_card.append(card)
+            self.card_in_hand.append(card)
             return card
         else:
             return None
-
-    
-
 
 class Button():
     def __init__(self, text, rect_size, font_size =125):
@@ -107,11 +106,17 @@ class Button():
         text_rect = text_render.get_rect(center=self.rect.center)
         screen.blit(text_render, text_rect)
 
-
-def game_screen(screen):
+def game_screen(player_hand, screen):
     hand_rect = pygame.Rect((800, 1100, 1000, 340))
     pygame.draw.rect(screen, (0,155,0), hand_rect)
 
+    card_spacing = 350
+    for index, card in enumerate(player_hand):
+        card_x = hand_rect.x + (index * card_spacing) + 38
+        card_y = hand_rect.y + 10
+        card.rect.topleft = (card_x, card_y)
+        screen.blit(card.face, card.rect)
+        
     energy_rect = pygame.Rect((150, 1065, 375, 375))
     pygame.draw.ellipse(screen, (18,76,255), energy_rect)
 
@@ -120,9 +125,6 @@ def game_screen(screen):
 
     health_rect = pygame.Rect((2200, 800, 250, 250))
     pygame.draw.ellipse(screen, (200,0,0), health_rect)
-
-
-
 
 def title(screen):
     title_font = pygame.font.SysFont(None, 200)
@@ -138,11 +140,6 @@ def main():
     resolution = pygame.display.get_desktop_sizes()[0]
     screen = pygame.display.set_mode(resolution)
 
-
-
-    
-
-
     play_button = Button("PLAY!", (550, 1200, 600, 150), 125)
     play_button.set_color((0, 200, 0))
     play_button.set_text_color((255, 255, 255))
@@ -155,13 +152,11 @@ def main():
     return_button.set_color((200, 0, 200))
     return_button.set_text_color((255, 255, 255))
 
-   # card = Cards((160,160), "Fireball", "Deal 60 Damage", (255,255,255))
-   # card.rect.x += 1000
-   # card.rect.y += 950
 
     running = True
     playing = False
     deck = CardDeck()
+    player_hand = []
     
 
     while running:
@@ -172,14 +167,10 @@ def main():
             title(screen)
             play_button.draw(screen)
             quit_button.draw(screen)
-            deck = CardDeck()
-            card = deck.pick_card_from_deck()
         else:
-            game_screen(screen)
+            game_screen(player_hand, screen)
             return_button.draw(screen)
-            card.draw((500,200), screen)
-            
-        
+
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -189,23 +180,22 @@ def main():
                 if quit_button.collidepoint(mouse_pos):
                     running = False
                 if play_button.collidepoint(mouse_pos):
+                    player_hand = []
+                    deck = CardDeck()
+                    card_1 = deck.pick_card_from_deck()
+                    player_hand.append(card_1)
+                    card_2 = deck.pick_card_from_deck()
+                    player_hand.append(card_2)
+                    card_3 = deck.pick_card_from_deck()
+                    player_hand.append(card_3)
                     playing = True
             elif event.type == pygame.MOUSEBUTTONDOWN and playing == True:
                 if return_button.collidepoint(mouse_pos):
                     playing = False
         pygame.display.update()
 
-
-
-
-
-
-
     pygame.font.quit()
     pygame.quit()
-
-
-
 
 if __name__ == "__main__":
     main()
