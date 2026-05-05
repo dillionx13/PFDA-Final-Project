@@ -18,6 +18,17 @@ class Opponent():
     def __init__(self):
         self.max_health = 100
         self.health = self.max_health
+        self.turn = False
+        self.attacks = {
+            "club": 20,
+            "firebolt": 6,
+            "claw swipe": 66
+        }
+
+    def play_turn(self):
+        self.attack_key = random.choice(list(self.attacks.keys()))
+        return self.attacks[self.attack_key]
+        
 
 class Player():
     def __init__(self):
@@ -28,11 +39,19 @@ class Player():
         self.hand_max = 3
         self.hand = []
         self.card_deck = CardDeck()
+        self.turn = True
+        self.selected_cards = []
+        self.start = True
 
     def fill_hand(self):
         if len(self.hand) < 3:
-            for _ in range(0, self.hand_max):
+            for _ in range(0, self.hand_max-len(self.hand)):
                 self.hand.append(self.card_deck.pick_card_from_deck())
+
+    def play_turn(self):
+        for card in self.selected_cards:
+            self.hand.remove(card)
+        self.energy += 2
 
 class Card():
 
@@ -40,6 +59,7 @@ class Card():
         self.text = dictionary["name"]
         self.description = dictionary["description"]
         self.cost = dictionary["cost"]
+        self.damage = dictionary["damage"]
         self.text_color = color    
         self.card_background = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1) 
         self.face = self.card_background.copy()
@@ -82,10 +102,10 @@ class Card():
 
 class CardDictionary():
     dictionary = {
-        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage"},
-        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage"},
-        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 1, "description": "Deal 1d8 Damage"},
-        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage"}
+        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage", "damage": 100},
+        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage", "damage": 20},
+        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 1, "description": "Deal 1d8 Damage", "damage": 6},
+        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage", "damage": 16}
     }
     def get_item(self, name):
         return self.dictionary[name]
@@ -149,6 +169,9 @@ class Button():
             pygame.draw.ellipse(screen, self.color, self.rect)
         text_rect = text_render.get_rect(center=self.rect.center)
         screen.blit(text_render, text_rect)
+
+def is_game_over(player, opponent):
+    return player.health <= 0 or opponent.health <= 0
 
 def game_screen(player, opponent, screen):
     hand_rect = pygame.Rect((800, 1100, 1000, 340))
@@ -222,7 +245,8 @@ def main():
     running = True
     playing = False
     
-
+    opponent = None
+    player = None
     while running:
         screen_color = pygame.Color(68,105,254)
         screen.fill(screen_color)
@@ -255,29 +279,59 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN and playing == True:
                 if return_button.collidepoint(mouse_pos):
                     playing = False
-                if deck_button.collidepoint(mouse_pos):
-                    player.fill_hand()
-                    deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
-                    game_area.message = "Select Cards to Play Turn"
-                for card in player.hand:
-                    if card.collidepoint(mouse_pos):
-                        if card.selected:
-                            card.build_card()
-                            card.selected = False
-                            player.energy = player.energy + card.cost
-                            game_area.message = "Select Cards to Play Turn"
-                        else:
-                            total_energy_left = player.energy - card.cost
-                            if total_energy_left < 0:
-                                game_area.message = "Not Enough Energy to Select"
-                            else:
-                                player.energy = player.energy - card.cost
-                                check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
-                                check_mark_rect = check_mark.get_rect(center=card.face.get_rect().center)
-                                check_mark_rect.y -= 20
-                                card.face.blit(check_mark,check_mark_rect)
+                if is_game_over(player, opponent) == False:
+                    if player.turn == True:
+                        if len(player.hand) < player.hand_max:
+                            if deck_button.collidepoint(mouse_pos):
+                                player.fill_hand()
+                                player.start = False
+                                deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
                                 game_area.message = "Select Cards to Play Turn"
-                                card.selected = True
+                        else:
+                            for card in player.hand:
+                                if card.collidepoint(mouse_pos):
+                                    if card.selected:
+                                        card.build_card()
+                                        card.selected = False
+                                        player.energy = player.energy + card.cost
+                                        game_area.message = "Select Cards to Play Turn"
+                                        player.selected_cards.remove(card)
+                                    else:
+                                        total_energy_left = player.energy - card.cost
+                                        if total_energy_left < 0:
+                                            game_area.message = "Not Enough Energy to Select"
+                                        else:
+                                            player.energy = player.energy - card.cost
+                                            check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
+                                            check_mark_rect = check_mark.get_rect(center=card.face.get_rect().center)
+                                            check_mark_rect.y -= 20
+                                            card.face.blit(check_mark,check_mark_rect)
+                                            game_area.message = "Select Cards to Play Turn"
+                                            card.selected = True
+                                            player.selected_cards.append(card)
+                            if player.start == False and turn_button.collidepoint(mouse_pos):
+                                game_area.message = ""
+                                player.play_turn()
+                                if len(player.selected_cards) > 0:
+                                    for card in player.selected_cards:
+                                        game_area.message += f"Played {card.text}, {card.description}\n"
+                                        opponent.health -= card.damage
+                                    player.selected_cards.clear()
+                                opponent.turn = True
+
+        if opponent and opponent.turn and opponent.health > 0: 
+            game_area.message = ""
+            #pygame.time.delay(1000)
+            opponent_damage = opponent.play_turn()
+            player.health -= opponent_damage
+            game_area.message = f"Opponent played {opponent.attack_key}, dealing {opponent_damage}"
+            opponent.turn = False
+            player.turn = True
+        if player and player.health <= 0:
+            game_area.message = "Game Over. You Died...\n Press Return to Start New Game"
+        if opponent and opponent.health <= 0:
+            game_area.message = "Game Over. Victory!\n Press Return to Start New Game"
+
                     
 
 
