@@ -7,7 +7,7 @@ class GameArea():
 
     
     def draw(self, screen):
-        rect = pygame.Rect((300,300,2000,600))
+        rect = pygame.Rect((300,175,2000,800))
         font = pygame.font.SysFont(None, 100)
         text_render = font.render(self.message, True, (255,255,255))
         pygame.draw.rect(screen, (0,25,255), rect, 10)
@@ -19,23 +19,35 @@ class Opponent():
         self.max_health = 100
         self.health = self.max_health
         self.turn = False
-        self.attacks = {
-            "club": {"dice_amount": 3, "dice_type": 8},
-            "firebolt": {"dice_amount": 1, "dice_type": 8,},
-            "claw swipe": {"dice_amount": 4, "dice_type": 6,},
-        }
+        self.dictionary = CardDictionary()
+        self.energy = 5
+        
+    def select_move(self):
+        self.attack_key = random.choice(list(self.dictionary.get_dictionary().keys()))
+        self.cost = (self.dictionary.get_dictionary()[self.attack_key]["cost"])
 
     def play_turn(self):
-        self.attack_key = random.choice(list(self.attacks.keys()))
-        damage = roll_damage(self.attacks[self.attack_key]["dice_amount"], self.attacks[self.attack_key]["dice_type"])
-        return damage
+        self.select_move()
+        print(self.cost)
+        print(self.energy)
+        while self.energy < self.cost:
+            self.select_move()
+        self.card_type = (self.dictionary.get_dictionary()[self.attack_key]["card_type"])
+        
+        points = roll_damage(self.dictionary.get_dictionary()[self.attack_key]["dice_amount"], self.dictionary.get_dictionary()[self.attack_key]["dice_type"])
+        if self.card_type == "defense":
+            self.health += points
+            if self.health > self.max_health:
+                self.health = 100
+        self.energy -= self.cost
+        self.energy += 3
+        return points
         
 
 class Player():
     def __init__(self):
         self.max_health = 100
         self.health = self.max_health
-        self.max_energy = 9
         self.energy = 5
         self.hand_max = 3
         self.hand = []
@@ -43,15 +55,25 @@ class Player():
         self.turn = True
         self.selected_cards = []
         self.start = True
+        self.played_cards = []
 
     def fill_hand(self):
+        self.refill_deck = False
         if len(self.hand) < 3:
             for _ in range(0, self.hand_max-len(self.hand)):
+                if len(self.card_deck.card_deck) == 0:
+                    random.shuffle(self.played_cards)
+                    self.card_deck.card_deck.extend(self.played_cards)
+                    self.played_cards.clear()
+                    self.refill_deck = True
                 self.hand.append(self.card_deck.pick_card_from_deck())
+                
 
     def play_turn(self):
         for card in self.selected_cards:
             self.hand.remove(card)
+            self.played_cards.append(card)
+
         self.energy += 2
 
 class Card():
@@ -61,8 +83,13 @@ class Card():
         self.description = dictionary["description"]
         self.cost = dictionary["cost"]
         self.damage = roll_damage(dictionary["dice_amount"], dictionary["dice_type"])
-        self.text_color = color    
-        self.card_background = pygame.transform.scale_by(pygame.image.load("card_template.png"), 1) 
+        self.card_type = dictionary["card_type"]
+        self.text_color = color
+     
+        if self.card_type == "attack":
+            self.card_background = pygame.transform.scale_by(pygame.image.load("card_attack_template.png"), 1)
+        else:
+            self.card_background = pygame.transform.scale_by(pygame.image.load("card_defense_template.png"), 1)
         self.face = self.card_background.copy()
         self.rect = self.face.get_rect()  
         self.build_card()
@@ -87,15 +114,24 @@ class Card():
         desc_rect.y += -25        
         self.face.blit(desc_surface, desc_rect)
 
-        number_font = pygame.font.SysFont(None, 45)
+        number_font = pygame.font.SysFont(None, 100)
         circle_rect = pygame.Rect(0, 0, 50 * 2, 50 * 2)
-        circle_rect.x += -28
-        circle_rect.y += -6
+        circle_rect.x += 63
+        circle_rect.y += 80
         number_surf = number_font.render(str(self.cost), True, self.text_color)
         number_rect = number_surf.get_rect(center=circle_rect.center)
         self.face.blit(number_surf,number_rect)
         
-
+    def select_me(self):
+        check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
+        check_mark_rect = check_mark.get_rect(center=self.face.get_rect().center)
+        check_mark_rect.y -= 20
+        self.face.blit(check_mark,check_mark_rect)
+        self.selected = True
+    
+    def unselect_me(self):
+        self.build_card()
+        self.selected = False
 
     def draw(self, pos, screen):
         self.rect.topleft = pos
@@ -103,10 +139,16 @@ class Card():
 
 class CardDictionary():
     dictionary = {
-        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage", "dice_amount": 8, "dice_type": 6},
-        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage", "dice_amount": 3, "dice_type": 10},
-        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 1, "description": "Deal 1d8 Damage", "dice_amount": 1, "dice_type": 8},
-        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage", "dice_amount": 3, "dice_type": 8}
+        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage", "dice_amount": 8, "dice_type": 6, "card_type": "attack"},
+        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage", "dice_amount": 3, "dice_type": 10, "card_type": "attack"},
+        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 0, "description": "Deal 1d8 Damage", "dice_amount": 1, "dice_type": 8, "card_type": "attack"},
+        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage", "dice_amount": 3, "dice_type": 8, "card_type": "attack"},
+        "Disintergrate": {"name": "Disintergrate", "cost": 6, "description": "Deal 10d6 Damage", "dice_amount": 10, "dice_type": 6, "card_type": "attack"},
+        "Blight": {"name": "Blight", "cost": 4, "description": "Deal 8d8 Damage", "dice_amount": 8, "dice_type": 8, "card_type": "attack"},
+        "Inflict Wounds": {"name": "Inflict Wounds", "cost": 1, "description": "Deal 2d10 Damage", "dice_amount": 2, "dice_type": 10, "card_type": "attack"},
+        "Lesser Cure": {"name": " Lesser Cure", "cost": 1, "description": "Heal 2d8 HP", "dice_amount": 2, "dice_type": 8, "card_type": "defense"},
+        "Greater Cure": {"name": "Greater Cure", "cost": 5, "description": "Heal 6d8 HP", "dice_amount": 6, "dice_type": 8, "card_type": "defense"},
+        "Cure Wounds": {"name": "Cure Wounds", "cost": 3, "description": "Heal 4d8 HP", "dice_amount": 4, "dice_type": 8, "card_type": "defense"}
     }
     def get_item(self, name):
         return self.dictionary[name]
@@ -252,6 +294,8 @@ def main():
     
     opponent = None
     player = None
+
+    draw_reminder = 0
     while running:
         screen_color = pygame.Color(68,105,254)
         screen.fill(screen_color)
@@ -287,18 +331,22 @@ def main():
                 if is_game_over(player, opponent) == False:
                     if player.turn == True:
                         if len(player.hand) < player.hand_max:
-                            game_area.message += ("\nClick Deck to Draw")
+                            if draw_reminder == 0:
+                                game_area.message += ("\n\nClick Deck to Draw")
+                                draw_reminder += 1
                             if deck_button.collidepoint(mouse_pos):
                                 player.fill_hand()
                                 player.start = False
                                 deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
                                 game_area.message = "Select Cards and/or Click Play Turn When Ready"
+                                if player.refill_deck:
+                                    game_area.message += "\n\nDeck Refilled!"
+                                draw_reminder = 0
                         else:
                             for card in player.hand:
                                 if card.collidepoint(mouse_pos):
                                     if card.selected:
-                                        card.build_card()
-                                        card.selected = False
+                                        card.unselect_me()
                                         player.energy = player.energy + card.cost
                                         game_area.message = "Select Cards and/or Click Play Turn When Ready"
                                         player.selected_cards.remove(card)
@@ -308,20 +356,23 @@ def main():
                                             game_area.message = "Not Enough Energy.\n Select a Different Card or Play Turn"
                                         else:
                                             player.energy = player.energy - card.cost
-                                            check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
-                                            check_mark_rect = check_mark.get_rect(center=card.face.get_rect().center)
-                                            check_mark_rect.y -= 20
-                                            card.face.blit(check_mark,check_mark_rect)
+                                            card.select_me()
                                             game_area.message = "Select Cards and/or Click Play Turn When Ready"
-                                            card.selected = True
                                             player.selected_cards.append(card)
                             if player.start == False and turn_button.collidepoint(mouse_pos):
                                 game_area.message = ""
                                 player.play_turn()
                                 if len(player.selected_cards) > 0:
                                     for card in player.selected_cards:
-                                        game_area.message += f"You casted {card.text}, dealing {card.damage} damage\n"
-                                        opponent.health -= card.damage
+                                        if card.card_type == "attack":
+                                            game_area.message += f"You casted {card.text}, dealing {card.damage} damage\n"
+                                            opponent.health -= card.damage
+                                        if card.card_type == "defense":
+                                            game_area.message += f"You casted {card.text}, healing {card.damage} HP\n"
+                                            player.health += card.damage
+                                            if player.health > player.max_health:
+                                                player.health = 100
+                                        card.unselect_me()
                                     player.selected_cards.clear()
                                 opponent.turn = True
 
@@ -329,19 +380,20 @@ def main():
             #game_area.message = ""
             #pygame.time.delay(1000)
             opponent_damage = opponent.play_turn()
-            player.health -= opponent_damage
-            game_area.message += f"\nOpponent attacked with {opponent.attack_key}, dealing {opponent_damage} damage\n"
+            if opponent.card_type == "attack":
+                player.health -= opponent_damage
+                game_area.message += f"\nOpponent casted with {opponent.attack_key}, dealing {opponent_damage} damage\n"
+            else:
+                game_area.message += f"\nOpponent casted with {opponent.attack_key}, healing {opponent_damage} HP\n"
             opponent.turn = False
             player.turn = True
-            if len(player.hand) < player.hand_max:
-                game_area.message += ("\nClick Deck to Draw")
-            else:
-                game_area.message += ("\nSelect Cards and/or Click Play Turn When Ready")
+            game_area.message += "\nGained +2 Energy. Your Turn!"
         if player and player.health <= 0:
             game_area.message = "\nGame Over. You Died...\n Press Return to Start New Game"
         if opponent and opponent.health <= 0:
             game_area.message = "\nGame Over. Victory!\n Press Return to Start New Game"
 
+        
                     
 
 
