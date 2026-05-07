@@ -1,6 +1,7 @@
 import pygame
 import random
 
+
 class GameArea():
     def __init__(self, text):
         self.message = text
@@ -28,8 +29,6 @@ class Opponent():
 
     def play_turn(self):
         self.select_move()
-        print(self.cost)
-        print(self.energy)
         while self.energy < self.cost:
             self.select_move()
         self.card_type = (self.dictionary.get_dictionary()[self.attack_key]["card_type"])
@@ -61,9 +60,9 @@ class Player():
         self.refill_deck = False
         if len(self.hand) < 3:
             for _ in range(0, self.hand_max-len(self.hand)):
-                if len(self.card_deck.card_deck) == 0:
+                if len(self.card_deck.deck) == 0:
                     random.shuffle(self.played_cards)
-                    self.card_deck.card_deck.extend(self.played_cards)
+                    self.card_deck.deck.extend(self.played_cards)
                     self.played_cards.clear()
                     self.refill_deck = True
                 self.hand.append(self.card_deck.pick_card_from_deck())
@@ -159,7 +158,7 @@ class CardDictionary():
 class CardDeck():
     def __init__(self): 
         self.card_in_hand = [] 
-        self.card_deck = self.build_deck()
+        self.deck = self.build_deck()
         
     def build_deck(self):
         card_list = [] 
@@ -178,8 +177,8 @@ class CardDeck():
         card_list.append(card)
 
     def pick_card_from_deck(self):
-        if (len(self.card_deck) > 0):
-            card = self.card_deck.pop(0)
+        if (len(self.deck) > 0):
+            card = self.deck.pop(0)
             self.card_in_hand.append(card)
             return card
         else:
@@ -261,11 +260,12 @@ def main():
     pygame.init()
     pygame.font.init()
 
-
+    # Sets display sizes
     pygame.display.set_caption("Dungeon & Cards")
     resolution = pygame.display.get_desktop_sizes()[0]
     screen = pygame.display.set_mode(resolution)
 
+    # Buttons on main screen
     play_button = Button("PLAY!", (550, 1200, 600, 150), 125)
     play_button.set_color((0, 200, 0))
     play_button.set_text_color((255, 255, 255))
@@ -274,6 +274,7 @@ def main():
     quit_button.set_color((200, 0, 0))
     quit_button.set_text_color((255, 255, 255))
 
+    # Buttons on game screen
     return_button = Button("RETURN", (25, 25, 200, 50), 35)
     return_button.set_color((200, 0, 200))
     return_button.set_text_color((255, 255, 255))
@@ -286,20 +287,27 @@ def main():
     turn_button.set_color((155,155,155))
     turn_button.set_text_color((255, 255, 255))
 
+    # Message Screen in game
     game_area = GameArea("")
     
-
+    # Game Flags
     running = True
     playing = False
-    
+
+    # Game Players 
     opponent = None
     player = None
 
+    # Prevents adding mutliple "Click to Draw"
     draw_reminder = 0
+
+    # Game Starts
     while running:
+        # Background
         screen_color = pygame.Color(68,105,254)
         screen.fill(screen_color)
 
+        # Draws menu screens
         if playing == False:
             title(screen)
             play_button.draw("ellipse", screen)
@@ -311,70 +319,72 @@ def main():
             turn_button.draw("rect", screen)
             game_area.draw(screen)
 
+        # Keeps track of mouse position
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             
-            if event.type == pygame.MOUSEBUTTONDOWN and playing == False:
-                if quit_button.collidepoint(mouse_pos):
-                    running = False
-                if play_button.collidepoint(mouse_pos):
-                    player = Player()
-                    deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
-                    opponent = Opponent()
-                    game_area.message = "Click Deck to Start Game!"
-                    playing = True
-            elif event.type == pygame.MOUSEBUTTONDOWN and playing == True:
-                if return_button.collidepoint(mouse_pos):
-                    playing = False
-                if is_game_over(player, opponent) == False:
-                    if player.turn == True:
-                        if len(player.hand) < player.hand_max:
-                            if draw_reminder == 0:
-                                game_area.message += ("\n\nClick Deck to Draw")
-                                draw_reminder += 1
-                            if deck_button.collidepoint(mouse_pos):
-                                player.fill_hand()
-                                player.start = False
-                                deck_button.set_text(f"Deck: {len(player.card_deck.card_deck)}")
-                                game_area.message = "Select Cards and/or Click Play Turn When Ready"
-                                if player.refill_deck:
-                                    game_area.message += "\n\nDeck Refilled!"
-                                draw_reminder = 0
-                        else:
-                            for card in player.hand:
-                                if card.collidepoint(mouse_pos):
-                                    if card.selected:
-                                        card.unselect_me()
-                                        player.energy = player.energy + card.cost
-                                        game_area.message = "Select Cards and/or Click Play Turn When Ready"
-                                        player.selected_cards.remove(card)
-                                    else:
-                                        total_energy_left = player.energy - card.cost
-                                        if total_energy_left < 0:
-                                            game_area.message = "Not Enough Energy.\n Select a Different Card or Play Turn"
-                                        else:
-                                            player.energy = player.energy - card.cost
-                                            card.select_me()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if playing == False:
+                    if quit_button.collidepoint(mouse_pos):
+                        running = False
+                    if play_button.collidepoint(mouse_pos):
+                        player = Player()
+                        deck_button.set_text(f"Deck: {len(player.card_deck.deck)}")
+                        opponent = Opponent()
+                        game_area.message = "Click Deck to Start Game!"
+                        playing = True
+                elif playing == True:
+                    if return_button.collidepoint(mouse_pos):
+                        playing = False
+                    if is_game_over(player, opponent) == False:
+                        if player.turn == True:
+                            if len(player.hand) < player.hand_max:
+                                if draw_reminder == 0:
+                                    game_area.message += ("\n\nClick Deck to Draw")
+                                    draw_reminder += 1
+                                if deck_button.collidepoint(mouse_pos):
+                                    player.fill_hand()
+                                    player.start = False
+                                    deck_button.set_text(f"Deck: {len(player.card_deck.deck)}")
+                                    game_area.message = "Select Cards and/or Click Play Turn When Ready"
+                                    if player.refill_deck:
+                                        game_area.message += "\n\nDeck Refilled!"
+                                    draw_reminder = 0
+                            else:
+                                for card in player.hand:
+                                    if card.collidepoint(mouse_pos):
+                                        if card.selected:
+                                            card.unselect_me()
+                                            player.energy = player.energy + card.cost
                                             game_area.message = "Select Cards and/or Click Play Turn When Ready"
-                                            player.selected_cards.append(card)
-                            if player.start == False and turn_button.collidepoint(mouse_pos):
-                                game_area.message = ""
-                                player.play_turn()
-                                if len(player.selected_cards) > 0:
-                                    for card in player.selected_cards:
-                                        if card.card_type == "attack":
-                                            game_area.message += f"You casted {card.text}, dealing {card.damage} damage\n"
-                                            opponent.health -= card.damage
-                                        if card.card_type == "defense":
-                                            game_area.message += f"You casted {card.text}, healing {card.damage} HP\n"
-                                            player.health += card.damage
-                                            if player.health > player.max_health:
-                                                player.health = 100
-                                        card.unselect_me()
-                                    player.selected_cards.clear()
-                                opponent.turn = True
+                                            player.selected_cards.remove(card)
+                                        else:
+                                            total_energy_left = player.energy - card.cost
+                                            if total_energy_left < 0:
+                                                game_area.message = "Not Enough Energy.\n Select a Different Card or Play Turn"
+                                            else:
+                                                player.energy = player.energy - card.cost
+                                                card.select_me()
+                                                game_area.message = "Select Cards and/or Click Play Turn When Ready"
+                                                player.selected_cards.append(card)
+                                if player.start == False and turn_button.collidepoint(mouse_pos):
+                                    game_area.message = ""
+                                    player.play_turn()
+                                    if len(player.selected_cards) > 0:
+                                        for card in player.selected_cards:
+                                            if card.card_type == "attack":
+                                                game_area.message += f"You casted {card.text}, dealing {card.damage} damage\n"
+                                                opponent.health -= card.damage
+                                            if card.card_type == "defense":
+                                                game_area.message += f"You casted {card.text}, healing {card.damage} HP\n"
+                                                player.health += card.damage
+                                                if player.health > player.max_health:
+                                                    player.health = 100
+                                            card.unselect_me()
+                                        player.selected_cards.clear()
+                                    opponent.turn = True
 
         if opponent and opponent.turn and opponent.health > 0: 
             #game_area.message = ""
@@ -388,6 +398,7 @@ def main():
             opponent.turn = False
             player.turn = True
             game_area.message += "\nGained +2 Energy. Your Turn!"
+
         if player and player.health <= 0:
             game_area.message = "\nGame Over. You Died...\n Press Return to Start New Game"
         if opponent and opponent.health <= 0:
