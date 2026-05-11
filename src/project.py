@@ -21,7 +21,7 @@ class Opponent():
         self.health = self.max_health
         self.turn = False
         self.dictionary = CardDictionary()
-        self.energy = 5
+        self.energy = 4
         
     def select_move(self):
         self.attack_key = random.choice(list(self.dictionary.get_dictionary().keys()))
@@ -37,7 +37,7 @@ class Opponent():
         if self.card_type == "defense":
             self.health += points
             if self.health > self.max_health:
-                self.health = 100
+                self.health = self.max_health
         self.energy -= self.cost
         self.energy += 3
         return points
@@ -138,16 +138,16 @@ class Card():
 
 class CardDictionary():
     dictionary = {
-        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage", "dice_amount": 8, "dice_type": 6, "card_type": "attack"},
-        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 3d10 Damage", "dice_amount": 3, "dice_type": 10, "card_type": "attack"},
-        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 0, "description": "Deal 1d8 Damage", "dice_amount": 1, "dice_type": 8, "card_type": "attack"},
-        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage", "dice_amount": 3, "dice_type": 8, "card_type": "attack"},
-        "Disintergrate": {"name": "Disintergrate", "cost": 6, "description": "Deal 10d6 Damage", "dice_amount": 10, "dice_type": 6, "card_type": "attack"},
-        "Blight": {"name": "Blight", "cost": 4, "description": "Deal 8d8 Damage", "dice_amount": 8, "dice_type": 8, "card_type": "attack"},
-        "Inflict Wounds": {"name": "Inflict Wounds", "cost": 1, "description": "Deal 2d10 Damage", "dice_amount": 2, "dice_type": 10, "card_type": "attack"},
-        "Lesser Cure": {"name": " Lesser Cure", "cost": 1, "description": "Heal 2d8 HP", "dice_amount": 2, "dice_type": 8, "card_type": "defense"},
-        "Greater Cure": {"name": "Greater Cure", "cost": 5, "description": "Heal 6d8 HP", "dice_amount": 6, "dice_type": 8, "card_type": "defense"},
-        "Cure Wounds": {"name": "Cure Wounds", "cost": 3, "description": "Heal 4d8 HP", "dice_amount": 4, "dice_type": 8, "card_type": "defense"}
+        "Eldritch Blast": {"name": "Eldritch Blast", "cost": 0, "description": "Deal 1d8 Damage\n    (1-8 damage)", "dice_amount": 1, "dice_type": 8, "card_type": "attack"},
+        "Inflict Wounds": {"name": "Inflict Wounds", "cost": 1, "description": "Deal 2d10 Damage\n    (2-20 damage)", "dice_amount": 2, "dice_type": 10, "card_type": "attack"},
+        "Lesser Cure": {"name": " Lesser Cure", "cost": 1, "description": "Heal 2d8 HP\n    (2-16 HP)", "dice_amount": 2, "dice_type": 8, "card_type": "defense"},
+        "Mind Spike": {"name": "Mind Spike", "cost": 2, "description": "Deal 3d8 Damage\n    (3-24 damage)", "dice_amount": 3, "dice_type": 8, "card_type": "attack"},
+        "Fireball": {"name": "Fireball", "cost": 3, "description": "Deal 8d6 Damage\n    (8-48 damage)", "dice_amount": 8, "dice_type": 6, "card_type": "attack"},
+        "Call Lightning": {"name": "Call Lightning", "cost": 3, "description": "Deal 11d4 Damage\n    (11-44 damage)", "dice_amount": 11, "dice_type": 4, "card_type": "attack"},
+        "Cure Wounds": {"name": "Cure Wounds", "cost": 3, "description": "Heal 4d8 HP\n    (4-32 HP)", "dice_amount": 4, "dice_type": 8, "card_type": "defense"},
+        "Blight": {"name": "Blight", "cost": 4, "description": "Deal 9d6 Damage\n    (9-54 damage)", "dice_amount": 9, "dice_type": 6, "card_type": "attack"},
+        "Greater Cure": {"name": "Greater Cure", "cost": 5, "description": "Heal 6d8 HP\n    (6-48 HP)", "dice_amount": 6, "dice_type": 8, "card_type": "defense"},
+        "Disintergrate": {"name": "Disintergrate", "cost": 6, "description": "Deal 10d6 Damage\n    (10-60 damage)", "dice_amount": 10, "dice_type": 6, "card_type": "attack"},
     }
     def get_item(self, name):
         return self.dictionary[name]
@@ -300,13 +300,20 @@ def main():
 
     # Prevents adding mutliple "Click to Draw"
     draw_reminder = 0
-
+    main_music = 0
+    losing_music = 0
+    winning_music = 0
     # Game Starts
     while running:
         # Background
         screen_color = pygame.Color(68,105,254)
         screen.fill(screen_color)
+        if main_music == 0:
+            pygame.mixer.music.load("main_menu.mp3")
+            pygame.mixer.music.play(loops=-1)
+            main_music += 1
 
+        
         # Draws menu screens
         if playing == False:
             title(screen)
@@ -318,18 +325,22 @@ def main():
             deck_button.draw("rect",screen)
             turn_button.draw("rect", screen)
             game_area.draw(screen)
+            
 
         # Keeps track of mouse position
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if playing == False:
                     if quit_button.collidepoint(mouse_pos):
                         running = False
                     if play_button.collidepoint(mouse_pos):
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.unload()
+                        pygame.mixer.music.load("battle.mp3")
+                        pygame.mixer.music.play(loops=-1, start=21.5)
                         player = Player()
                         deck_button.set_text(f"Deck: {len(player.card_deck.deck)}")
                         opponent = Opponent()
@@ -338,6 +349,12 @@ def main():
                 elif playing == True:
                     if return_button.collidepoint(mouse_pos):
                         playing = False
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.unload()
+                        main_music = 0
+                        losing_music = 0
+                        winning_music = 0
+                        
                     if is_game_over(player, opponent) == False:
                         if player.turn == True:
                             if len(player.hand) < player.hand_max:
@@ -381,7 +398,7 @@ def main():
                                                 game_area.message += f"You casted {card.text}, healing {card.damage} HP\n"
                                                 player.health += card.damage
                                                 if player.health > player.max_health:
-                                                    player.health = 100
+                                                    player.health = player.max_health
                                             card.unselect_me()
                                         player.selected_cards.clear()
                                     opponent.turn = True
@@ -401,8 +418,20 @@ def main():
 
         if player and player.health <= 0:
             game_area.message = "\nGame Over. You Died...\n Press Return to Start New Game"
+            if losing_music == 0:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.unload()
+                pygame.mixer.music.load("lost.mp3")
+                pygame.mixer.music.play(loops=-1)
+                losing_music += 1
         if opponent and opponent.health <= 0:
             game_area.message = "\nGame Over. Victory!\n Press Return to Start New Game"
+            if winning_music == 0:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.unload()
+                pygame.mixer.music.load("victory.mp3")
+                pygame.mixer.music.play(loops=-1)
+                winning_music += 1
 
         
                     
