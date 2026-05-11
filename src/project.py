@@ -33,14 +33,14 @@ class Opponent():
             self.select_move()
         self.card_type = (self.dictionary.get_dictionary()[self.attack_key]["card_type"])
         
-        points = roll_damage(self.dictionary.get_dictionary()[self.attack_key]["dice_amount"], self.dictionary.get_dictionary()[self.attack_key]["dice_type"])
+        rolled_number = roll_damage(self.dictionary.get_dictionary()[self.attack_key]["dice_amount"], self.dictionary.get_dictionary()[self.attack_key]["dice_type"])
         if self.card_type == "defense":
-            self.health += points
+            self.health += rolled_number
             if self.health > self.max_health:
                 self.health = self.max_health
         self.energy -= self.cost
         self.energy += 3
-        return points
+        return rolled_number
         
 class Player():
     def __init__(self):
@@ -120,14 +120,14 @@ class Card():
         number_rect = number_surf.get_rect(center=circle_rect.center)
         self.face.blit(number_surf,number_rect)
         
-    def select_me(self):
+    def select_card(self):
         check_mark = pygame.transform.scale_by(pygame.image.load("check_mark.png"), 0.5)
         check_mark_rect = check_mark.get_rect(center=self.face.get_rect().center)
         check_mark_rect.y -= 20
         self.face.blit(check_mark,check_mark_rect)
         self.selected = True
     
-    def unselect_me(self):
+    def unselect_card(self):
         self.build_card()
         self.selected = False
 
@@ -299,6 +299,8 @@ def main():
 
     # Prevents adding mutliple "Click to Draw"
     draw_reminder = 0
+
+    # Music Counter
     main_music = 0
     losing_music = 0
     winning_music = 0
@@ -313,7 +315,6 @@ def main():
             pygame.mixer.music.play(loops=-1)
             main_music += 1
 
-        
         # Draws menu screens
         if playing == False:
             title(screen)
@@ -326,7 +327,6 @@ def main():
             turn_button.draw("rect", screen)
             game_area.draw(screen)
             
-
         # Keeps track of mouse position
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -355,7 +355,6 @@ def main():
                         pygame.mixer.music.unload()
                         main_music = 0
                         
-                        
                     if is_game_over(player, opponent) == False:
                         if player.turn == True:
                             if len(player.hand) < player.hand_max:
@@ -370,13 +369,11 @@ def main():
                                 elif draw_reminder == 0:
                                     game_area.message += ("\n\nClick Deck to Draw")
                                     draw_reminder += 1
-
-                                
                             else:
                                 for card in player.hand:
                                     if card.collidepoint(mouse_pos):
                                         if card.selected:
-                                            card.unselect_me()
+                                            card.unselect_card()
                                             player.energy = player.energy + card.cost
                                             game_area.message = "Select Cards and/or Click Play Turn When Ready"
                                             player.selected_cards.remove(card)
@@ -386,7 +383,7 @@ def main():
                                                 game_area.message = "Not Enough Energy.\n Select a Different Card or Play Turn"
                                             else:
                                                 player.energy = player.energy - card.cost
-                                                card.select_me()
+                                                card.select_card()
                                                 game_area.message = "Select Cards and/or Click Play Turn When Ready"
                                                 player.selected_cards.append(card)
                                 if player.start == False and turn_button.collidepoint(mouse_pos):
@@ -402,7 +399,7 @@ def main():
                                                 player.health += card.damage
                                                 if player.health > player.max_health:
                                                     player.health = player.max_health
-                                            card.unselect_me()
+                                            card.unselect_card()
                                         player.selected_cards.clear()
                                     opponent.turn = True
 
@@ -418,15 +415,16 @@ def main():
             game_area.message += "\nGained +2 Energy. Your Turn!"
 
         if player and player.health <= 0:
-            game_area.message = "\nGame Over. You Died...\n Press Return to Start New Game"
+            game_area.message = "\nGame Over. You Died...\nPress Return to Start New Game"
             if losing_music == 0:
                 pygame.mixer.music.stop()
                 pygame.mixer.music.unload()
                 pygame.mixer.music.load("lost.mp3")
                 pygame.mixer.music.play(loops=-1)
                 losing_music += 1
+
         if opponent and opponent.health <= 0:
-            game_area.message = "\nGame Over. Victory!\n Press Return to Start New Game"
+            game_area.message = "\nGame Over. Victory!\nPress Return to Start New Game"
             if winning_music == 0:
                 pygame.mixer.music.stop()
                 pygame.mixer.music.unload()
