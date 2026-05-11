@@ -42,7 +42,6 @@ class Opponent():
         self.energy += 3
         return points
         
-
 class Player():
     def __init__(self):
         self.max_health = 100
@@ -303,6 +302,7 @@ def main():
     main_music = 0
     losing_music = 0
     winning_music = 0
+    
     # Game Starts
     while running:
         # Background
@@ -337,10 +337,12 @@ def main():
                     if quit_button.collidepoint(mouse_pos):
                         running = False
                     if play_button.collidepoint(mouse_pos):
+                        losing_music = 0
+                        winning_music = 0
                         pygame.mixer.music.stop()
                         pygame.mixer.music.unload()
                         pygame.mixer.music.load("battle.mp3")
-                        pygame.mixer.music.play(loops=-1, start=21.5)
+                        pygame.mixer.music.play(loops=-1)
                         player = Player()
                         deck_button.set_text(f"Deck: {len(player.card_deck.deck)}")
                         opponent = Opponent()
@@ -352,15 +354,11 @@ def main():
                         pygame.mixer.music.stop()
                         pygame.mixer.music.unload()
                         main_music = 0
-                        losing_music = 0
-                        winning_music = 0
+                        
                         
                     if is_game_over(player, opponent) == False:
                         if player.turn == True:
                             if len(player.hand) < player.hand_max:
-                                if draw_reminder == 0:
-                                    game_area.message += ("\n\nClick Deck to Draw")
-                                    draw_reminder += 1
                                 if deck_button.collidepoint(mouse_pos):
                                     player.fill_hand()
                                     player.start = False
@@ -369,6 +367,11 @@ def main():
                                     if player.refill_deck:
                                         game_area.message += "\n\nDeck Refilled!"
                                     draw_reminder = 0
+                                elif draw_reminder == 0:
+                                    game_area.message += ("\n\nClick Deck to Draw")
+                                    draw_reminder += 1
+
+                                
                             else:
                                 for card in player.hand:
                                     if card.collidepoint(mouse_pos):
@@ -394,7 +397,7 @@ def main():
                                             if card.card_type == "attack":
                                                 game_area.message += f"You casted {card.text}, dealing {card.damage} damage\n"
                                                 opponent.health -= card.damage
-                                            if card.card_type == "defense":
+                                            elif card.card_type == "defense":
                                                 game_area.message += f"You casted {card.text}, healing {card.damage} HP\n"
                                                 player.health += card.damage
                                                 if player.health > player.max_health:
@@ -404,8 +407,6 @@ def main():
                                     opponent.turn = True
 
         if opponent and opponent.turn and opponent.health > 0: 
-            #game_area.message = ""
-            #pygame.time.delay(1000)
             opponent_damage = opponent.play_turn()
             if opponent.card_type == "attack":
                 player.health -= opponent_damage
