@@ -313,6 +313,7 @@ def main():
         if main_music == 0:
             pygame.mixer.music.load("main_menu.mp3")
             pygame.mixer.music.play(loops=-1)
+            pygame.mixer.music.set_volume(0.05)
             main_music += 1
 
         # Draws menu screens
@@ -343,6 +344,7 @@ def main():
                         pygame.mixer.music.unload()
                         pygame.mixer.music.load("battle.mp3")
                         pygame.mixer.music.play(loops=-1)
+                        pygame.mixer.music.set_volume(0.05)
                         player = Player()
                         deck_button.set_text(f"Deck: {len(player.card_deck.deck)}")
                         opponent = Opponent()
@@ -380,7 +382,7 @@ def main():
                                         else:
                                             total_energy_left = player.energy - card.cost
                                             if total_energy_left < 0:
-                                                game_area.message = "Not Enough Energy.\n Select a Different Card or Play Turn"
+                                                game_area.message = "Not Enough Energy.\nSelect a Different Card or Play Turn"
                                             else:
                                                 player.energy = player.energy - card.cost
                                                 card.select_card()
@@ -421,6 +423,7 @@ def main():
                 pygame.mixer.music.unload()
                 pygame.mixer.music.load("lost.mp3")
                 pygame.mixer.music.play(loops=-1)
+                pygame.mixer.music.set_volume(0.05)
                 losing_music += 1
 
         if opponent and opponent.health <= 0:
@@ -430,6 +433,7 @@ def main():
                 pygame.mixer.music.unload()
                 pygame.mixer.music.load("victory.mp3")
                 pygame.mixer.music.play(loops=-1)
+                pygame.mixer.music.set_volume(0.25)
                 winning_music += 1
 
         
