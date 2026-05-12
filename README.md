@@ -1,7 +1,7 @@
-# Dungeons and Cards
+# Dungeons & Cards
 
 ## Demo
-Demo Video: <URL>
+Demo Video: [PFDA Final Project: Dungeons & Cards](https://youtu.be/q_2al_0An_8)
 
 ## GitHub Repository
 GitHub Repo: [PFDA-Final-Project](https://github.com/dillionx13/PFDA-Final-Project)
